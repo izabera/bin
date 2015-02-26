@@ -1,0 +1,23 @@
+#!/bin/awk -f
+
+BEGIN {
+  if (ARGC > 1) field = ARGV[1]
+  else field = 1
+
+  if (ARGC > 2) {
+    operator = ARGV[2]
+    if (ARGC > 3) result = ARGV[3]
+    else if (operator == "*") result = 1
+  }
+  else operator = "+"
+
+  ARGC = 1
+}
+
+{
+  # only * and + make sense
+  if (operator == "*") result *= $field
+  else result += $field
+}
+
+END { print result }

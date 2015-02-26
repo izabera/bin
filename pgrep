@@ -1,0 +1,108 @@
+#!/bin/sh
+
+# NAME
+#       pgrep, pkill - find or signal processes by name and other attributes
+#
+# SYNOPSIS
+#       pgrep [-glpfao] pattern
+#       pkill [-glpfao] [-s SIG] pattern
+#
+# DESCRIPTION
+#       pgrep looks through the currently running processes and lists the
+#       process IDs which match the selection criteria to stdout.
+#
+#       pkill does the same, and sends them signals.
+#
+# OPTIONS:
+#       -g      [glob] use pattern as a glob
+#       -l      [literal] don't use pattern as a glob (default)
+#       -p      [part] match pattern against part of the string
+#       -f      [full] match pattern against the full string (default)
+#       -a      [args] match against all the args
+#       -o      [only] match only against argv[0] (default)
+#
+#       For pkill only:
+#       -s SIG  a signal name or a number
+
+pgrep () {
+  read -r pspid
+  while read -r pid name; do
+    if ! [ "$pid" -eq "$$" ] && ! [ "$pid" -eq "$pspid" ]; then
+      if "$glob" && "$full"; then
+        case $name in $proc) echo "$pid"; ret=0;; esac
+      elif "$glob" && ! "$full"; then
+        case $name in *$proc*) echo "$pid"; ret=0;; esac
+      elif ! "$glob" && "$full"; then
+        case $name in "$proc") echo "$pid"; ret=0;; esac
+      else
+        case $name in *"$proc"*) echo "$pid"; ret=0;; esac
+      fi
+    fi
+  done
+  exit "$ret"
+} << EOF
+$output
+EOF
+
+pkill () {
+  read -r pspid
+  while read -r pid name; do
+    if ! [ "$pid" -eq "$$" ] && ! [ "$pid" -eq "$pspid" ]; then
+      if "$glob" && "$full"; then
+        case $name in $proc) set -- "$@" "$pid"; ret=0;; esac
+      elif "$glob" && ! "$full"; then
+        case $name in *$proc*) set -- "$@" "$pid"; ret=0;; esac
+      elif ! "$glob" && "$full"; then
+        case $name in "$proc") set -- "$@" "$pid"; ret=0;; esac
+      else
+        case $name in *"$proc"*) set -- "$@" "$pid"; ret=0;; esac
+      fi
+    fi
+  done
+  if [ "$ret" -eq 0 ]; then
+    kill "-$signal" "$@"  # kill may or may not print its own error message
+  fi
+  exit "$ret"
+} << EOF
+$output
+EOF
+
+basename=${0##*/} glob=false full=true args=comm signal=15 ret=1
+while getopts :glpfaos: opt; do
+  case $opt in
+    g) glob=true;;
+    l) glob=false;;
+    p) full=false;;
+    f) full=true;;
+    a) args=args;;
+    o) args=comm;;
+    s) signal=$OPTARG
+      if [ "$basename" = pgrep ]; then
+        echo "Unknown option: -s" >&2; exit 1
+      fi;;
+    :) echo "Option -$OPTARG requires an argument" >&2; exit 1;;
+    \?) echo "Unknown option: -$OPTARG" >&2; exit 1;;
+  esac
+done
+
+shift $((OPTIND-1))
+if [ "$#" -gt 1 ]; then
+  echo "Only one pattern at a time" >&2
+  exit 1
+elif [ "$#" -lt 1 ]; then
+  echo "Must provide a pattern to match" >&2
+  exit 1
+fi
+
+output=$(sh -c "echo \$$; exec ps -A -o pid= -o $args=")
+proc=$1 
+
+if [ "$basename" = pgrep ]; then
+  pgrep
+elif [ "$basename" = pkill ]; then
+  pkill
+else
+  echo "Error" >&2
+  exit 1
+fi
+
