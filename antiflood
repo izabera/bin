@@ -1,0 +1,14 @@
+#!/bin/bash
+while read -r; do
+  if (( SECONDS == 0 )); then
+    (( row ++ ))
+    if (( row < ${1-3} )); then        # less than X lines?  ok, print
+      echo "$REPLY"
+    elif (( row == ${1-3} )); then     # too many lines, stop flooding
+      echo "${2-stop}"
+    fi
+  else
+    SECONDS=0 row=1
+    echo "$REPLY"
+  fi
+done
