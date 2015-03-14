@@ -12,7 +12,7 @@ readinput ()
 
 shelltest () {
   shells=(bash bsh bush dash jsh ksh mksh pdksh posh zsh)
-  while getopts :oOhrs: opt ; do
+  while getopts :oOhrs:f:p: opt ; do
     case $opt in
       r) resetcolors=true;;
       o) oneline=true;;
@@ -38,9 +38,13 @@ Options:
           -O   print in multiple lines with headers
           -r   reset colors before starting each shell
           -s   select all the default shells + an additional one
+          -p   expected correct result
+          -f   expected wrong result
 EOF
           exit;;
       s) shells+=("$OPTARG") ;;
+      f) fail=$OPTARG ;;
+      p) pass=$OPTARG ;;
       :) echo "No shell selected for -$OPTARG" >&2; exit 1;;
       \?) echo "Unknown option: $OPTARG" >&2; exit 1;;
     esac
@@ -61,6 +65,8 @@ EOF
   input () {
     cat
     (( $# )) && printf '%8s: ' args && printf '%q ' "$@" && echo
+    [[ $pass ]] && printf '%8s: %s\n' right "$pass"
+    [[ $fail ]] && printf '%8s: %s\n' wrong "$fail"
     printf '=======================\n'
   }
   shells=(input "${shells[@]}")
@@ -72,7 +78,12 @@ EOF
       printf '%s%s==> %s <==\n' "$no_color" "$var" "$shell"
       var=$'\n'
     fi
-    "$shell" "$@" < /dev/fd/0 # abusing herestrings to pass the same input to each shell
+    result=$("$shell" "$@" < /dev/fd/0 2>&1) # abusing herestrings to pass the same input to each shell
+    if [[ $result = "$pass" ]]; then status=PASS
+    elif [[ $result = "$fail" ]]; then status=FAIL
+    else status=
+    fi
+    printf '%s\t\t%s\n' "$result" "$status" | expand
   done <<< "$(readinput)"
 }
 
