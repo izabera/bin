@@ -1,0 +1,3 @@
+#!/bin/awk -f
+# print to the terminal with a trailing newline even if the file lacks it
+1
