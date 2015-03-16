@@ -65,8 +65,8 @@ EOF
   input () {
     cat
     (( $# )) && printf '%8s: ' args && printf '%q ' "$@" && echo
-    [[ $pass ]] && printf '%8s: %s\n' right "$pass"
-    [[ $fail ]] && printf '%8s: %s\n' wrong "$fail"
+    [[ -v pass ]] && printf '%8s: %s\n' right "$pass"
+    [[ -v fail ]] && printf '%8s: %s\n' wrong "$fail"
     printf '=======================\n'
   }
   shells=(input "${shells[@]}")
@@ -79,8 +79,8 @@ EOF
       var=$'\n'
     fi
     result=$("$shell" "$@" < /dev/fd/0 2>&1) # abusing herestrings to pass the same input to each shell
-    if [[ $result = "$pass" ]]; then status=PASS
-    elif [[ $result = "$fail" ]]; then status=FAIL
+    if [[ -v pass && $result = "$pass" ]]; then status=PASS
+    elif [[ -v fail && $result = "$fail" ]]; then status=FAIL
     else status=
     fi
     printf '%s\t\t%s\n' "$result" "$status" | expand
