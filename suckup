@@ -1,5 +1,4 @@
 #!/bin/bash
 cd ~/ubase && git pull && make
 cd ~/sbase && git pull && make
-find ~/ubase ~/sbase -maxdepth 1 -type f -executable -exec ln -vfst /usr/suckless/bin/ {} +
-# ln --verbose --force --symbolic --target
+find ~/ubase ~/sbase -maxdepth 1 -type f -executable -exec ln -fst /usr/suckless/bin/ {} +
