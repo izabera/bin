@@ -6,11 +6,23 @@
 # - history completion
 # - line editing like a pro
 
+# options:
+# -o vi / -o emacs    enable vi/emacs editing mode
+# -v                  print version
+# -h                  print help
+# -H                  enable history expansion
+
+# ~/.rrlwraprc is read to get the default options
+
 # tested in bash 4.3, should work in older versions too (from 4.0, hopefully)
 
-usage () { echo "usage: rrlwrap [-o emacs|vi] [-vh] prog [args...]"; }
+usage () { echo "usage: rrlwrap [-o emacs|vi] [-vhH] prog [args...]"; }
 
-while getopts :hvo: opt; do
+hist=false
+
+[[ -r ~/.rrlwraprc ]] && source ~/.rrlwraprc
+
+while getopts :hvo:H opt; do
   case $opt in
     h)
       usage; exit ;;
@@ -29,6 +41,8 @@ while getopts :hvo: opt; do
         exit 1
       fi
       ;;
+    H)
+      hist=true ;;
     :) # smiley option :)
       echo "Option -$OPTARG needs a parameter" >&2
       exit 1
@@ -57,11 +71,17 @@ fi
 {
   echo "$BASHPID"
   while read -re; do
-    history -p -- "$REPLY"          # expand
+                                    # expand history
+    if ! "$hist" || ! history -p -- "$REPLY" 2>/dev/null; then
+      printf "%s\n" "$REPLY"        # if expansion fails, just print it
+    fi
+
     if [[ $REPLY != "$old" ]]; then # HISTCONTROL=ignoredups
       history -s -- "$REPLY"        # add to history
     fi
+
     old=$REPLY
+
   done
 } | {
   read pid
