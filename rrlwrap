@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# rrlwrap
+# it uses read -e to access readline's features:
+# - history expansion
+# - history completion
+# - line editing like a pro
+
+# tested in bash 4.3, should work in older versions too (from 4.0, hopefully)
+
+usage () { echo "usage: rlwrap [-o emacs|vi] [-vh] prog [args...]"; }
+
+while getopts :hvo: opt; do
+  case $opt in
+    h)
+      usage; exit ;;
+    v)
+      echo "rrlwrap"
+      echo "version 0.1"
+      echo "by izabera" 
+      echo "this code is public domain"
+      exit
+      ;;
+    o)
+      if [[ $OPTARG = emacs || $OPTARG = vi ]]; then
+        set -o "$OPTARG"
+      else
+        echo "Invalid parameter: $OPTARG" >&2
+        exit 1
+      fi
+      ;;
+    :) # smiley option :)
+      echo "Option -$OPTARG needs a parameter" >&2
+      exit 1
+      ;;
+    *) echo "Unknown option: -$OPTARG" >&2
+      exit 1
+  esac
+done
+
+shift "$((OPTIND - 1))"
+if (( ! $# )); then
+  usage >&2
+  exit 1
+fi
+
+{
+  bind 'tab:dabbrev-expand'         # i'm going to call this "menu-complete for history"
+  bind 'set show-all-if-ambiguous on'
+  bind 'set menu-complete-display-prefix on'
+  bind 'set print-completions-horizontally on'
+  bind 'set bell-style none'
+  bind 'set completion-ignore-case on'
+} 2> /dev/null                      # bind prints some stupid error message even if it succeeds
+
+
+{
+  echo "$BASHPID"
+  while read -rep ''; do
+    history -p -- "$REPLY"          # expand
+    if [[ $REPLY != "$old" ]]; then # HISTCONTROL=ignoredups
+      history -s -- "$REPLY"        # add to history
+    fi
+    old=$REPLY
+  done
+} | {
+  read pid
+  if type -P "$1" >/dev/null; then
+    "$@"
+    exit=$?
+  else
+    printf '%s: command not found\n' "$1"
+    exit=127
+  fi
+
+  kill -TERM "$pid" 2>/dev/null
+  exit "$exit"
+}
