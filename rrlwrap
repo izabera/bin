@@ -8,7 +8,7 @@
 
 # tested in bash 4.3, should work in older versions too (from 4.0, hopefully)
 
-usage () { echo "usage: rlwrap [-o emacs|vi] [-vh] prog [args...]"; }
+usage () { echo "usage: rrlwrap [-o emacs|vi] [-vh] prog [args...]"; }
 
 while getopts :hvo: opt; do
   case $opt in
@@ -56,7 +56,7 @@ fi
 
 {
   echo "$BASHPID"
-  while read -rep ''; do
+  while read -re; do
     history -p -- "$REPLY"          # expand
     if [[ $REPLY != "$old" ]]; then # HISTCONTROL=ignoredups
       history -s -- "$REPLY"        # add to history
