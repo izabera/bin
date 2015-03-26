@@ -103,8 +103,9 @@ prompt+=$'\3'
   fi
 
   kill -TERM "$pid" 2>/dev/null
+
+  # TODO: this sucks 
+  "$prompt_is_set" && echo
+
   exit "$exit"
 }
-
-# TODO: this sucks 
-"$prompt_is_set" && echo
