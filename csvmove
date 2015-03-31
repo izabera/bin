@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# csvmove
+# rearrange columns of a csv file read from stdin
+
+# usage: csvmove column [column...]
+# column arguments can be formatted like this: 1,3,3,7-10,32
+# any column can be repeated more than once or skipped
+
+if (( ! $# )); then
+  echo "Missing argument" >&2
+  exit 1
+fi
+
+# expand a range
+for range; do
+  IFS=, read -ra input <<< "$range"
+  for i in "${input[@]}"; do
+    if [[ $i =~ ^[[:digit:]]+-[[:digit:]]+$ ]]; then
+      eval "nums+=({${i%-*}..${i#*-}})"
+    elif [[ $i =~ [[:digit:]]+ ]]; then
+      nums+=("$i")
+    else
+      echo "Invalid number or range: $i" >&2
+      exit 1
+    fi
+  done
+done
+
+# needs gnu awk for FPAT
+awk '
+BEGIN {
+  FPAT = "([^,]*)|(\"[^\"]+\")"
+  for (i = 1; i < ARGC; i++) column[++j] = ARGV[i]
+  ARGC = 1
+}
+{
+  for (i = 1; i < j; i++) printf ("%s,", $column[i])
+  print $column[i]
+}
+' "${nums[@]}"

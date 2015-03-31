@@ -66,7 +66,7 @@ fi
 
 # workaround so that pressing backspace won't delete the program's prompt
 [[ $prompt ]] && prompt_is_set=true || prompt_is_set=false
-prompt+=$'\3'
+#prompt+=$'\3'    # turns out readline randomly messes with the characters :(
 {
   bind 'tab:dabbrev-expand'         # i'm going to call this "menu-complete for history"
   bind 'set show-all-if-ambiguous on'
