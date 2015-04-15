@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# same as   od -An -vtx1
+
+LANG=C IFS=
+while read -rn1 -d ''; do
+  printf -v out '%s %02x' "$out" "'$REPLY"
+  if (( count++ == 15 )); then
+    echo "$out"
+    out= count=0
+  fi
+done
+(( count > 0 )) && echo "$out"
