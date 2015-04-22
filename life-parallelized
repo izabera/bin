@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# read a file or stdin with a starting grid
+# space = dead    -> 0
+# x     = alive   -> 1
+# actually any character that's not x or \n will be treated as a dead cell
+
+IFS= LANG=C
+mapfile -t lines < "${1-/dev/stdin}"
+
+# the longest line is the width of the grid we display
+for line in "${lines[@]}"; do
+  (( width = width < ${#line} ? ${#line} : width ))
+done
+
+declare -A cells newcells
+
+for (( i = 0; i < ${#lines[@]}; i++ )); do
+  for (( j = 0; j < width; j++ )); do
+    if [[ ${lines[i]:j:1} = x ]]; then
+      cells[$i,$j]=1
+    #else
+      #cells[$i,$j]=0
+    fi
+  done
+done
+
+display () {
+  tput cup 0 0
+  str=
+  for i in "${is[@]}"; do
+    for j in "${js[@]}"; do
+      if [[ ${cells[$i,$j]} = 1 ]]; then str+=x; else str+=' '; fi
+    done
+    str+=$'\n'
+  done
+  printf '%s' "$str"
+}
+
+tput smcup
+tput civis
+trap 'tput rmcup; tput cnorm' EXIT
+height=${#lines[@]}
+
+
+# it turns out that c-style for loops are way slower
+for (( i = 0; i < height; i++ )); do
+  is[i]=$i
+done
+for (( j = 0; j < width; j++ )); do
+  js[j]=$j
+done
+
+
+#for q in {1..10}; do   # small loop for testing purposes
+while :; do
+  display
+
+  # gnourf's uber-optimized version
+  eval "$(
+  for i in "${is[@]}"; do
+    #   previous      next
+    (( ip = i - 1 ,  in = i + 1 ))
+    for j in "${js[@]}"; do
+      (( jp = j - 1 ,  jn = j + 1 ))
+
+      (( sum = cells[$ip,$jp] + cells[$i,$jp] +
+               cells[$in,$jp] + cells[$ip,$j] +
+               cells[$in,$j] + cells[$ip,$jn] +
+               cells[$i,$jn] + cells[$in,$jn] ))
+  
+      if [[ ${cells[$i,$j]} ]]; then
+        (( sum < 2 || sum > 3 )) && printf '%s\n' "unset \"cells[$i,$j]\"" || printf '%s\n' "cells[$i,$j]=1"
+      else
+        (( sum == 3 )) && printf '%s\n' "cells[$i,$j]=1"
+      fi
+
+    done &
+ done; wait)"
+
+  # cells=()
+  # for i in "${!newcells[@]}"; do
+  #   cells[$i]=${newcells[$i]}
+  # done
+
+done
