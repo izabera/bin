@@ -19,8 +19,8 @@ for (( i = 0; i < ${#lines[@]}; i++ )); do
   for (( j = 0; j < width; j++ )); do
     if [[ ${lines[i]:j:1} = x ]]; then
       cells[$i,$j]=1
-    else
-      cells[$i,$j]=0
+    #else
+      #cells[$i,$j]=0
     fi
   done
 done
@@ -52,8 +52,8 @@ for (( j = 0; j < width; j++ )); do
 done
 
 
-#for q in {1..10}; do   # small loop for testing purposes
-while :; do
+for q in {1..10}; do   # small loop for testing purposes
+#while :; do
   display
 
   for i in "${is[@]}"; do
@@ -70,8 +70,9 @@ while :; do
       #(( newcells[$i,$j] = cells[$i,$j] ? ! ( (sum < 2) + (sum > 3)) : (sum == 3) ))
       # ^^^ this is slower than the if version ^^^
 
-      if [[ ${cells[$i,$j]} = 1 ]]; then
-        (( sum < 2 || sum > 3 )) && newcells[$i,$j]=0
+      if [[ ${cells[$i,$j]} ]]; then
+        (( sum < 2 || sum > 3 )) && unset "newcells[$i,$j]" || newcells[$i,$j]=1
+        #(( sum < 2 || sum > 3 )) && newcells[$i,$j]=0
       else
         (( sum == 3 )) && newcells[$i,$j]=1
       fi
@@ -79,6 +80,7 @@ while :; do
     done
   done
 
+  cells=()
   for i in "${!newcells[@]}"; do
     cells[$i]=${newcells[$i]}
   done
