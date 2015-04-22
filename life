@@ -52,8 +52,8 @@ for (( j = 0; j < width; j++ )); do
 done
 
 
-for q in {1..10}; do   # small loop for testing purposes
-#while :; do
+#for q in {1..10}; do   # small loop for testing purposes
+while :; do
   display
 
   for i in "${is[@]}"; do
@@ -62,20 +62,11 @@ for q in {1..10}; do   # small loop for testing purposes
     for j in "${js[@]}"; do
       (( jp = j - 1 ,  jn = j + 1 ))
 
-      (( sum = cells[$ip,$jp] + cells[$i,$jp] +
-               cells[$in,$jp] + cells[$ip,$j] +
-               cells[$in,$j] + cells[$ip,$jn] +
-               cells[$i,$jn] + cells[$in,$jn] ))
-  
-      #(( newcells[$i,$j] = cells[$i,$j] ? ! ( (sum < 2) + (sum > 3)) : (sum == 3) ))
-      # ^^^ this is slower than the if version ^^^
+      ((sum = cells[$ip,$jp] + cells[$i,$jp] + cells[$in,$jp] +
+              cells[$ip,$j]  + cells[$i,$j]  + cells[$in,$j]  +
+              cells[$ip,$jn] + cells[$i,$jn] + cells[$in,$jn] ,
 
-      if [[ ${cells[$i,$j]} ]]; then
-        (( sum < 2 || sum > 3 )) && unset "newcells[$i,$j]" || newcells[$i,$j]=1
-        #(( sum < 2 || sum > 3 )) && newcells[$i,$j]=0
-      else
-        (( sum == 3 )) && newcells[$i,$j]=1
-      fi
+       sum == 3 || (sum == 4 && cells[$i,$j]) )) && newcells[$i,$j]=1
 
     done
   done
@@ -84,5 +75,6 @@ for q in {1..10}; do   # small loop for testing purposes
   for i in "${!newcells[@]}"; do
     cells[$i]=${newcells[$i]}
   done
+  newcells=()
 
 done
