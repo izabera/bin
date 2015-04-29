@@ -1,0 +1,40 @@
+#!/bin/sh
+# headtail
+# print the first N lines and the last M lines
+
+# usage: headtail [N [M [FILE]]]
+
+n=${1-10} m=${2-$n}
+
+case $n in
+  *[!0-9]*) echo "Invalid number of lines: $1" >&2; exit 1
+esac
+case $m in
+  *[!0-9]*) echo "Invalid number of lines: $2" >&2; exit 1
+esac
+
+[ "$n" -eq 0 ] && [ "$m" -eq 0 ] && exit
+
+case $# in
+  0) : ;;
+  1) shift ;;
+  2|3) shift 2 ;;
+  *) echo "Too many arguments" >&2; exit 1
+esac
+
+awk -v n="$n" -v m="$m" '
+  i++ < n 
+  { a[NR%m]=$0 }
+  END {
+    if (i >= n) {
+      if (i > n+m) {
+        for (i=NR-(m-1); i<=NR; i++)
+          print a[i%m]
+      }
+      else {
+        for (i=n+1; i<=NR; i++)
+          print a[i%m]
+      }
+    }
+  }
+' "$@"
