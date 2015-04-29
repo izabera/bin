@@ -24,9 +24,9 @@ esac
 
 awk -v n="$n" -v m="$m" '
   i++ < n 
-  { a[NR%m]=$0 }
+  m > 0 { a[NR%m]=$0 }
   END {
-    if (i >= n) {
+    if (i >= n && m > 0) {
       if (i > n+m) {
         for (i=NR-(m-1); i<=NR; i++)
           print a[i%m]
