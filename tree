@@ -21,7 +21,10 @@ tree () {
 
     # avoid a function
     # it's simpler than checking FUNCNEST, incrementing it and decrementing it afterwards
-    if [[ -d $file ]]; then
+    if [[ -L ${file%/} ]]; then
+      "$appendsymbol" && printf "@"
+      echo link >&4
+    elif [[ -d $file ]]; then
       "$appendsymbol" && printf "/"
       echo dir >&4
     elif [[ -S $file ]]; then
@@ -35,17 +38,24 @@ tree () {
       if [[ -x $file ]]; then
         "$appendsymbol" && printf "*"
       fi
+    elif [[ -b $file ]]; then
+      echo blk >&4
+    elif [[ -c $file ]]; then
+      echo char >&4
     fi
 
     echo
-    [[ -d $file ]] && ( tree "${file%/}" "${prestring%-- }   |" )
+    [[ -d $file && ! -L ${file%/} ]] && ( tree "${file%/}" "${prestring%-- }   |" )
   done
 
   file=${files[-1]}
 
   printf "%s%s" "${prestring%?-- }\`-- " "${fullpath:+$PWD/}${file%/}"
 
-  if [[ -d $file ]]; then
+  if [[ -L ${file%/} ]]; then
+    "$appendsymbol" && printf "@"
+    echo link >&4
+  elif [[ -d $file ]]; then
     "$appendsymbol" && printf "/"
     echo dir >&4
   elif [[ -S $file ]]; then
@@ -59,10 +69,14 @@ tree () {
     if [[ -x $file ]]; then
       "$appendsymbol" && printf "*"
     fi
+  elif [[ -b $file ]]; then
+    echo blk >&4
+  elif [[ -c $file ]]; then
+    echo char >&4
   fi
 
   echo
-  [[ -d $file ]] && ( tree "${file%/}" "${prestring%-- }   |" )
+  [[ -d $file && ! -L ${file%/} ]] && ( tree "${file%/}" "${prestring%?-- }    |" )
 }
 
 onlydirs=false fullpath= appendsymbol=false
@@ -82,18 +96,24 @@ done
 exec 3>&1
 
 coproc {
-  declare -i dircount filecount sockcount fifocount
+  declare -i dircount filecount sockcount fifocount charcount blkcount linkcount
   while read -r; do
     case $REPLY in
       dir) dircount+=1 ;;
       file) filecount+=1 ;;
       fifo) fifocount+=1 ;;
       sock) sockcount+=1 ;;
+      char) charcount+=1 ;;
+      blk) blkcount+=1 ;;
+      link) linkcount+=1 ;;
       output)
         (( dircount )) && echo "Directories: $dircount"
         (( filecount )) && echo "Files: $filecount"
         (( fifocount )) && echo "Named pipes: $fifocount"
         (( sockcount )) && echo "Sockets: $sockcount"
+        (( blkcount )) && echo "Block devices: $blkcount"
+        (( charcount )) && echo "Character devices: $charcount"
+        (( linkcount )) && echo "Symlinks: $linkcount"
         exit
     esac
   done >&3
@@ -101,7 +121,7 @@ coproc {
 
 exec 4>&"${COPROC[1]}"
 
-#exec 2>/dev/null
+exec 2>/dev/null
 shopt -s nullglob
 
 shift "$((OPTIND - 1))"
@@ -111,3 +131,4 @@ for dir do
   tree "$dir" "|"
 done
 echo output >&"${COPROC[1]}"
+wait
