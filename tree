@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# tree
+# options:
+# -L   max level
+# -f   show full path
+# -F   append symbols like ls -F
+# -o   write output to file
+# -d   directories only
+
+tree () {
+  ! cd -- "$1" && exit
+  prestring=$2
+  [[ $prestring = *"|" ]] && prestring+="-- " || prestring+="   "
+  "$onlydirs" && files=(*/) || files=(*)
+  (( ! ${#files[@]} )) && exit
+
+  for file in "${files[@]::${#files[@]}-1}"; do
+
+    printf "%s%s" "$prestring" "${fullpath:+$PWD/}${file%/}"
+
+    # avoid a function
+    # it's simpler than checking FUNCNEST, incrementing it and decrementing it afterwards
+    if "$appendsymbols"; then
+        if [[ -d $file ]]; then printf "/"
+      elif [[ -S $file ]]; then printf "="
+      elif [[ -p $file ]]; then printf "|"
+      elif [[ -x $file ]]; then printf "*"
+      fi
+    fi
+
+    printf "\n"
+    [[ -d $file ]] && ( tree "${file%/}" "${prestring%-- }   |" )
+  done
+
+  file=${files[-1]}
+
+  printf "%s%s" "${prestring%?-- }\`-- " "${fullpath:+$PWD/}${file%/}"
+
+  if "$appendsymbols"; then
+      if [[ -d $file ]]; then printf "/"
+    elif [[ -S $file ]]; then printf "="
+    elif [[ -p $file ]]; then printf "|"
+    elif [[ -x $file ]]; then printf "*"
+    fi
+  fi
+
+  printf "\n"
+  [[ -d $file ]] && tree "${file%/}" "${prestring%?-- }    |"
+}
+
+onlydirs=false fullpath= appendsymbols=false
+while getopts :adfFL:o: opt; do
+  case $opt in
+    a) shopt -s dotglob ;;
+    d) onlydirs=true ;;
+    f) fullpath=x ;;
+    F) appendsymbols=true ;;
+    L) FUNCNEST=$OPTARG ;;
+    o) exec 1>"$OPTARG" || exit ;;
+    :) echo "Missing argument for -$OPTARG" >&2; exit 1 ;;
+    *) echo "Unknown option -$OPTARG" >&2; exit 1 ;;
+  esac
+done
+
+exec 2>/dev/null
+shopt -s nullglob
+
+shift "$((OPTIND - 1))"
+printf "%s\n" "${1-.}"
+tree "${1-.}" "|"
