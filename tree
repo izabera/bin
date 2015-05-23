@@ -21,15 +21,23 @@ tree () {
 
     # avoid a function
     # it's simpler than checking FUNCNEST, incrementing it and decrementing it afterwards
-    if "$appendsymbols"; then
-        if [[ -d $file ]]; then printf "/"
-      elif [[ -S $file ]]; then printf "="
-      elif [[ -p $file ]]; then printf "|"
-      elif [[ -x $file ]]; then printf "*"
+    if [[ -d $file ]]; then
+      "$appendsymbol" && printf "/"
+      echo dir >&"${COPROC[1]}"
+    elif [[ -S $file ]]; then
+      "$appendsymbol" && printf "="
+      echo sock >&"${COPROC[1]}"
+    elif [[ -p $file ]]; then
+      "$appendsymbol" && printf "|"
+      echo fifo >&"${COPROC[1]}"
+    elif [[ -f $file ]]; then
+      echo file >&"${COPROC[1]}"
+      if [[ -x $file ]]; then
+        "$appendsymbol" && printf "*"
       fi
     fi
 
-    printf "\n"
+    echo
     [[ -d $file ]] && ( tree "${file%/}" "${prestring%-- }   |" )
   done
 
@@ -37,25 +45,33 @@ tree () {
 
   printf "%s%s" "${prestring%?-- }\`-- " "${fullpath:+$PWD/}${file%/}"
 
-  if "$appendsymbols"; then
-      if [[ -d $file ]]; then printf "/"
-    elif [[ -S $file ]]; then printf "="
-    elif [[ -p $file ]]; then printf "|"
-    elif [[ -x $file ]]; then printf "*"
+  if [[ -d $file ]]; then
+    "$appendsymbol" && printf "/"
+    echo dir >&"${COPROC[1]}"
+  elif [[ -S $file ]]; then
+    "$appendsymbol" && printf "="
+    echo sock >&"${COPROC[1]}"
+  elif [[ -p $file ]]; then
+    "$appendsymbol" && printf "|"
+    echo fifo >&"${COPROC[1]}"
+  elif [[ -f $file ]]; then
+    echo file >&"${COPROC[1]}"
+    if [[ -x $file ]]; then
+      "$appendsymbol" && printf "*"
     fi
   fi
 
-  printf "\n"
-  [[ -d $file ]] && tree "${file%/}" "${prestring%?-- }    |"
+  echo
+  [[ -d $file ]] && ( tree "${file%/}" "${prestring%-- }   |" )
 }
 
-onlydirs=false fullpath= appendsymbols=false
+onlydirs=false fullpath= appendsymbol=false
 while getopts :adfFL:o: opt; do
   case $opt in
     a) shopt -s dotglob ;;
     d) onlydirs=true ;;
     f) fullpath=x ;;
-    F) appendsymbols=true ;;
+    F) appendsymbol=true ;;
     L) FUNCNEST=$OPTARG ;;
     o) exec 1>"$OPTARG" || exit ;;
     :) echo "Missing argument for -$OPTARG" >&2; exit 1 ;;
@@ -63,9 +79,30 @@ while getopts :adfFL:o: opt; do
   esac
 done
 
+exec 3>&1
+
+coproc {
+  declare -i dircount filecount sockcount fifocount
+  while read -r; do
+    case $REPLY in
+      dir) dircount+=1 ;;
+      file) filecount+=1 ;;
+      fifo) fifocount+=1 ;;
+      sock) sockcount+=1 ;;
+      output)
+        (( dircount )) && echo "Directories: $dircount"
+        (( filecount )) && echo "Files: $filecount"
+        (( fifocount )) && echo "Named pipes: $fifocount"
+        (( sockcount )) && echo "Sockets: $sockcount"
+        exit
+    esac
+  done >&3
+}
+
 exec 2>/dev/null
 shopt -s nullglob
 
 shift "$((OPTIND - 1))"
 printf "%s\n" "${1-.}"
 tree "${1-.}" "|"
+echo output >&"${COPROC[1]}"
