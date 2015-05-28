@@ -1,23 +1,39 @@
 #!/bin/bash
 
-# usage: lastlines [-o OUTFILE] [-l NLINES]
-# reads stdin
-# prints the last NLINES lines read when it receives a SIGUSR1
+help () {
+  echo "\
+  Usage: lastlines [-n] [-o OUTFILE] [-l NLINES]
+  reads stdin and prints the last NLINES lines
+  when it receives a SIGUSR1
 
-# can be used to monitor a long running process
-#   myprocess | lastlines -o file -l 10
-# then you can read the last 10 lines from file printed by myprocess
-# without attaching a terminal to it
+  It can be used to monitor a long running process
+    myprocess | lastlines -o file -l 10
+  then you can read from file the last 10 lines
+  printed by myprocess without attaching a terminal to it
+
+  Options:
+  -n              print line numbers
+  -o OUTFILE      write to OUTFILE instead of stdout
+  -l NLINES       last NLINES lines (default: 5)
+  -h              print this help
+  -v              print version
+  "
+}
 
 
 # overwrite the file every time
 write () {
   (( i )) || return
+  local j count
   if (( i < lines )); then
-    printf "%s\n" "${array[@]}"
+    for (( count = 0 ; count < i; count++ )); do
+      (( numbers )) && printf "%s\t" "$((count+1))"
+      printf "%s\n" "${array[count]}"
+    done
   else
-    local j=$(( i % lines - lines )) count
+    j=$(( i % lines - lines ))
     for (( count = 0 ; count < lines; count++ )); do
+      (( numbers )) && printf "%s\t" "$((i-(lines-count)+1))"
       printf "%s\n" "${array[j+count]}"
     done
   fi
@@ -25,11 +41,14 @@ write () {
 
 trap write USR1
 
-target=/dev/stdout lines=5 i=0
-while getopts o:l: opt; do
+target=/dev/stdout lines=5 i=0 numbers=0
+while getopts nho:l: opt; do
   case $opt in
     o) target=$OPTARG ;;
     l) lines=$OPTARG ;;
+    n) numbers=1 ;;
+    v) echo "lastlines 0.1 - by iza"; exit ;;
+    h) help; exit
   esac
 done
 
