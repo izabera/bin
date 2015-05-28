@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# usage: lastlines [-o OUTFILE] [-l NLINES]
+# reads stdin
+# prints the last NLINES lines read when it receives a SIGUSR1
+
+# can be used to monitor a long running process
+#   myprocess | lastlines -o file -l 10
+# then you can read the last 10 lines from file printed by myprocess
+# without attaching a terminal to it
+
+
+# overwrite the file every time
+write () {
+  (( i )) || return
+  if (( i < lines )); then
+    printf "%s\n" "${array[@]}"
+  else
+    local j=$(( i % lines - lines )) count
+    for (( count = 0 ; count < lines; count++ )); do
+      printf "%s\n" "${array[j+count]}"
+    done
+  fi
+} > "$target"
+
+trap write USR1
+
+target=/dev/stdout lines=5 i=0
+while getopts o:l: opt; do
+  case $opt in
+    o) target=$OPTARG ;;
+    l) lines=$OPTARG ;;
+  esac
+done
+
+echo "To print the last $lines lines, use:   kill -USR1 $$" >&2
+
+while read -r; do
+  array[i++%lines]=$REPLY
+done
