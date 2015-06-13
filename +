@@ -1,0 +1,4 @@
+#!/bin/awk -f
+BEGIN { if (ARGC > 1) { for (i = 1; i <= ARGC; i++) sum += ARGV[i]; exit } }
+NF { for (i = 1; i <= NF; i++) sum += $i }
+END { print sum }

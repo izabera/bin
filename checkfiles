@@ -1,0 +1,44 @@
+#!/bin/bash
+# usage: checkfiles [n]
+# prompts the user to edit all the files in the current dir
+# start from the nth if n is provided
+
+# alignment is messed up in very narrow (<50 columns) terminals
+
+files=(*)
+for file in "${!files[@]}"; do
+  [[ -f ${files[file]} ]] || unset "files[file]"
+done
+tot=${#files[@]} files=(_ "${files[@]}")  # start from 1
+
+COLUMNS=${COLUMNS-$(TPUT COLS)}
+trap 'COLUMNS=$(tput cols)' WINCH
+shopt -s nocasematch
+
+for (( i = ${1-1}; i <= tot; i++ )); do
+
+#1   2     34      56789012345678901234567890123456789012
+#(<i>/<tot>) <name>: [n]ext [p]revious [e]xamine [q]uit X     <- 42
+  if (( ${#files[i]} + 42 + 2 * ${#tot} > COLUMNS )); then
+    printf "(%*d/%*d) %*.*s...: [n]ext [p]revious [e]xamine [q]uit "        \
+      "${#tot}" "$i" "${#tot}" "$tot" "$((COLUMNS - 42 - 3 - 2 * ${#tot}))" \
+      "$((COLUMNS - 42 - 3 - 2 * ${#tot}))" "${files[i]}"
+  else
+    printf "(%*d/%*d) %*.*s: [n]ext [p]revious [e]xamine [q]uit "           \
+      "${#tot}" "$i" "${#tot}" "$tot" "$((COLUMNS - 42     - 2 * ${#tot}))" \
+      "$((COLUMNS - 42     - 2 * ${#tot}))" "${files[i]}"
+  fi
+
+  REPLY=x
+  while [[ $REPLY != @([qnpe]|) ]]; do
+    read -sn1
+  done
+  [[ $REPLY ]] && echo "$REPLY" || echo e
+
+  case $REPLY in
+    n) ;;
+    p) (( i > 1 )) && (( i -= 2 )) ;;
+    e|'') "${EDITOR-vi}" "${files[i]}" ;;
+    q) exit ;;
+  esac
+done

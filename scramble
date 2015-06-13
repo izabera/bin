@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# scramble stdin, line by line
+
+while read -r; do
+  # explode to array
+  arr=() len=${#REPLY}
+  for (( i = 0; i < len; i++ )); do
+    arr+=("${REPLY:i:1}")
+  done
+  for (( i = 0; i < len; i++ )); do
+    printf %s "${arr[num = RANDOM % ( len - i )]}"
+    arr=("${arr[@]::num}" "${arr[@]:num+1}")
+  done
+  echo
+done
