@@ -1,0 +1,10 @@
+#!/bin/bash
+shopt -s lastpipe
+# check if it's already active
+if bspc query -T | grep vimscratchpad | read _ _ _ num _ ; then
+  # in which case bring it to the current desktop
+  bspc window "$num" -d focused
+else
+  # launch a new one
+  urxvtc -name vimscratchpad -fn '*-tamsyn-medium-r-normal--12-*' -e vim
+fi
