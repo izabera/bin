@@ -1,0 +1,6 @@
+#!/bin/bash
+i=1
+while (( $# )); do
+  printf "$%-2s: %q\n" "$((i++))" "$1"
+  shift
+done
