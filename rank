@@ -1,0 +1,3 @@
+#!/bin/awk -f
+$1 != x { place = NR; x = $1 }
+{ printf("%6s %s\n", place, $0) }

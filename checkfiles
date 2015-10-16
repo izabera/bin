@@ -11,7 +11,7 @@ for file in "${!files[@]}"; do
 done
 tot=${#files[@]} files=(_ "${files[@]}")  # start from 1
 
-COLUMNS=${COLUMNS-$(TPUT COLS)}
+COLUMNS=${COLUMNS-$(tput cols)}
 trap 'COLUMNS=$(tput cols)' WINCH
 shopt -s nocasematch
 
