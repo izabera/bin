@@ -1,0 +1,9 @@
+#!/bin/bash
+if [[ -r $HOME/.config/libash/colors-$TERM ]]; then
+  . "$HOME/.config/libash/colors-$TERM"
+else
+  _no_color=$(tput sgr 0)   _bold=$(tput bold)
+fi
+IFS="|"
+awk -v search="$*" -v bold="$_bold" -v no_color="$_no_color" \
+  '$0 ~ search { gsub(search, bold "&" no_color) } 1'
