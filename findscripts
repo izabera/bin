@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# find scripts in a directory
+# works with gnu file and a recent-ish bash
+
+if (( $# )); then cd -- "$1" || exit; fi
+
+shopt -s extglob nocaseglob nullglob
+files=()
+while read -r -d ""; do
+  # mime type (remove : and leading whitespace)
+  read -r _ type;
+  if [[ $type = @(text*|message*|inode/x-empty*) ]]; then
+    # now print them, add to an array, whatever
+    printf "%s\n" "$REPLY"
+  fi
+done < <(
+         # don't check these, add them by default
+         whitelist="@(c|h)?(pp)|txt|md|tex|py|pl|sh"
+         # don't check these either
+         blacklist="png|jp?(e)g|gif|mp[34]|ogg|tar|gz|xz|bz2|lzma|pdf|a|o|so|wav|flac|mov|flv|avi"
+
+         # just assume that log files are ok to open
+         # even if they end in something like .weechatlog
+         # and contain control characters (irc colors)
+         arr=( "$path"*.@($whitelist) "$path"*log )
+         (( ${#arr[@]} )) && printf "%s\0: text\n" "${arr[@]}"
+
+         # try to find scripts
+         arr=("$path"!(*.@($whitelist|$blacklist)|*log))
+         LANG=C IFS=
+
+         for file in "${!arr[@]}"; do
+           # avoid reading from stuff like fifos
+           [[ -f $file ]] || continue
+           read -rn2 -d "" < "${arr[file]}"
+           if [[ $REPLY = "#!" ]]; then
+             printf "%s\0: text\n" "${arr[file]}"
+             unset "arr[file]"
+           fi
+         done 2>/dev/null
+
+         # then use file --mime-type on the rest
+         file --mime-type -0 -L -r -- /dev/null "${arr[@]}" 2>/dev/null
+         )
