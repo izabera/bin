@@ -1,0 +1,10 @@
+#!/bin/bash -e
+(( $# == 1 || $# == 2 ))
+trap 'rm -f -- "$tmpfile"' exit
+tmpfile=$(mktemp)
+cat > "$tmpfile"
+case $# in
+  1) [[ "$1  -" = "$(sha1sum < "$tmpfile")" ]] ;;
+  2) [[ $2 = @(md|sha)+([0-9]) && "$1  -" = "$("$2sum" < "$tmpfile")" ]] ;;
+esac
+cat < "$tmpfile"
