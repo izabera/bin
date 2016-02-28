@@ -1,0 +1,3 @@
+#!/bin/awk -f
+{ if (length <= 80) printf "%-80.80s|\n", $0
+  else printf "%.80s|%s\n", $0, substr($0, 81) }
