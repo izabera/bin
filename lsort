@@ -1,3 +1,4 @@
 #!/bin/gawk -E
+length == 1 { print; next } # not necessary but it makes it more efficient
 { line[length][counter[length]++] = $0 }
 END { for (i in line) for (j in line[i]) print line[i][j] }
