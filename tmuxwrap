@@ -1,8 +1,10 @@
 #!/bin/bash
+exec > /dev/null 2>&1
 IFS=_
+unset TMUX
 target=${*//[$' \t']/_}
-if ! tmux ls | awk -v target="$target" '$1 = target ":" { exit 1 }'; then
-  tmux a -t "$target"
+if ! tmux ls | awk -v target="$target" '$1 == target ":" { exit 1 }'; then
+  tmux -f ~/bin/transparent_tmux.conf a -t "$target"
 else
-  tmux new -s "$target" -- "$@"
+  tmux -f ~/bin/transparent_tmux.conf new -s "$target" -- "$@"
 fi
