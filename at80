@@ -1,3 +1,4 @@
 #!/bin/awk -f
-{ if (length <= 80) printf "%-80s|\n", $0
-  else printf "%.80s|%s\n", $0, substr($0, 81) }
+BEGIN { width = 80 }
+{ if (length <= width) printf "%-*s|\n", width, $0
+  else printf "%.*s|%s\n", width, $0, substr($0, width+1) }
