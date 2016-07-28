@@ -1,0 +1,51 @@
+#!/bin/bash
+
+#_color_black=$(tput setaf 0)    _color_bright_black=$(tput setaf 8)
+_color_red=$(tput setaf 1)      _color_bright_red=$(tput setaf 9)
+_color_green=$(tput setaf 2)    _color_bright_green=$(tput setaf 10)
+_color_yellow=$(tput setaf 3)   _color_bright_yellow=$(tput setaf 11)
+_color_blue=$(tput setaf 4)     _color_bright_blue=$(tput setaf 12)
+_color_magenta=$(tput setaf 5)  _color_bright_magenta=$(tput setaf 13)
+_color_cyan=$(tput setaf 6)     _color_bright_cyan=$(tput setaf 14)
+#_color_white=$(tput setaf 7)    _color_bright_white=$(tput setaf 15)
+
+_no_color=$(tput sgr 0) #_bold=$(tput bold)
+
+export "${!_color_@}" _no_color
+
+gawk '
+BEGIN {
+  for (var in ENVIRON) if (var ~ /^_color_/) color[i++] = ENVIRON[var]
+  nocolor = ENVIRON["_no_color"]
+  for (i = 0; i < 255; i++) ascii[sprintf("%c", i)] = i
+  FPAT = "[[:space:]]*[^[:space:]]*"
+  OFS = ""
+}
+
+function djb2(str, hash) {
+  hash = 5381
+  while (length(str)) {
+    hash = (hash * 33 + ascii[substr(str, 1, 1)]) % 4294967296
+    str = substr(str, 2)
+  }
+  return hash
+}
+
+{
+  if ($3 ~ /[[:space:]]*-->$/ || $3 ~ /[[:space:]]*<--$/ || $3 ~ /[[:space:]]*--$/ || $3 ~ /[[:space:]]*\*$/) {
+    if (filter) next     # ./colorlog filter=1 logfile
+    gsub(/[[:space:]]/, "", $3)
+    sub(/^\t/, "", $4)
+    if (! ($4 in names)) names[$4] = color[djb2($4)%length(color)]
+    $3 = sprintf("%11s", $3) " | "
+    $4 = names[$4] $4 nocolor
+  }
+  else {
+    gsub(/[[:space:]]/, "", $3)
+    sub(/^\t/, "", $4)
+    if (! ($3 in names)) names[$3] = color[djb2($3)%length(color)]
+    $3 = " " names[$3] sprintf("%10.10s", $3) (length($3) > 10 ? "+" : " ") nocolor "| "
+  }
+}
+1
+' "$@"
