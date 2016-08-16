@@ -1,0 +1,10 @@
+#!/bin/gawk -f
+BEGIN { block = 10; NR = -1 }
+{ a[NR%block][length(a[NR%block])] = $0 }
+END {
+  ORS = ""
+  for (i in a) {
+    for (j in a[i]) print (j+0 ? "\t" : "") a[i][j]
+    print "\n"
+  }
+}
