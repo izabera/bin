@@ -1,0 +1,3 @@
+#!/bin/awk -f
+{ a[NR] = $0; len = length > len ? length : len }
+END { for (i in a) printf("%-" len "s\n", a[i]) }
